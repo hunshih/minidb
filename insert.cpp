@@ -42,7 +42,7 @@ Status Updates::Insert(const string& relation,      // Name of the relation
         {
             if(allAttr->attrName == attrList[i].attrName)
             {
-                memcpy ( newTuple.data + offset, attrList[i].attrValue, attrList[i].attrLen );
+                memcpy ( ((char*)newTuple.data) + offset, attrList[i].attrValue, attrList[i].attrLen );
                 if(allAttr->indexed) //IF INDEXED
                 {
                     IndexedAttr insertIndex;
