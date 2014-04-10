@@ -1,7 +1,7 @@
 #include "catalog.h"
 #include "query.h"
 #include "index.h"
-#include <vector>
+#include <string.h>
 /*
  * Inserts a record into the specified relation
  *
@@ -16,11 +16,8 @@ Status Updates::Insert(const string& relation,      // Name of the relation
 {
     /* Your solution goes here */
 
-    //DEFINE NEW STRUCT FOR UPDATING INDEX
-    struct IndexedAttr{
-        attrInfo Info;
-        int offset;
-    };
+    //DECLARE A MAP THAT KEEP TRACKS OF OFFSET AND ATTRINFO
+    map<int,attrInfo> indexMap;
 
     //CREATE RECORD OBJECT
     Record newTuple;
@@ -35,7 +32,6 @@ Status Updates::Insert(const string& relation,      // Name of the relation
 
     //USE MEMCPY TO COPY DATA
     int offset = 0, attrSize = 0;
-    vector<IndexedAttr> indexList;
     for(int aryCount = 0; aryCount < schemaAttrCnt; aryCount++, allAttr++)
     {
         for(int i = 0; i < attrCnt; i++)
@@ -45,13 +41,10 @@ Status Updates::Insert(const string& relation,      // Name of the relation
                 memcpy ( ((char*)newTuple.data) + offset, attrList[i].attrValue, attrList[i].attrLen );
                 if(allAttr->indexed) //IF INDEXED
                 {
-                    IndexedAttr insertIndex;
-                    insertIndex.Info = attrList[i];
-                    insertIndex.offset = offset;
-                    indexList.pushback(insertIndex);
+                    indexMap.insert(pair<int,attrInfo>(offset ,attrList[i]));
                 }
-                offset += attrList[i].attrLen;
-                attrSize += attrList[i].attrLen;
+                attrSize = attrList[i].attrLen;
+                offset += attrSize;
             }
             if(attrList[i].attrValue == NULL) //NO VALUE SPECIFIED FOR ATTR
             {
@@ -59,7 +52,7 @@ Status Updates::Insert(const string& relation,      // Name of the relation
             }
         }
     }
-    newTuple.length = attrSize;
+    newTuple.length = offset;
 
     //CREATE HEAPFILE AND INSERT DATA
     Status returnStatus = OK;
@@ -68,10 +61,10 @@ Status Updates::Insert(const string& relation,      // Name of the relation
     returnStatus = insertedTuple.insertRecord(newTuple, tupleID);
 
     //UPDATE INDEX (FOR ALL ATTR)
-    for(vector<IndexedAttr>::iterator it = indexList.begin(); it != indexList.end(); ++it)
+    for(map<int,attrInfo>::iterator it = indexMap.begin() ; it != indexMap.end(); ++it)
     {
-        Index updateIndex(relation, it->info.offset, it->info.attrLen, it->info.attrType, 0, returnStatus); 
-        updateIndex.insertEntry(it->info.attrValue, tupleID);
+        Index updateIndex(relation, it->first, it->second.attrLen, (Datatype)it->second.attrType, 0, returnStatus); 
+        updateIndex.insertEntry(it->second.attrValue, tupleID);
     }
 
     return OK;
