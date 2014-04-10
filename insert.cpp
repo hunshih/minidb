@@ -16,19 +16,11 @@ Status Updates::Insert(const string& relation,      // Name of the relation
 {
     /* Your solution goes here */
 
-    //CHECK IF THE LIST OF ATTR IS VALID
-    for(int i = 0; i < attrCnt; i++)
-    {
-    	if(std::strcmp(attrList[i].relName, relation) != 0) //MAKE SURE SUCH ATTRIBUTE EXISTS IN RELATION
-    	{
-    		return ATTRTYPEMISMATCH;
-    	}
-
-    	if(attrList[i].attrValue == NULL) //NO VALUE SPECIFIED FOR ATTR
-    	{
-    		return ATTRNOTFOUND;
-    	}
-    }
+    //DEFINE NEW STRUCT FOR UPDATING INDEX
+    struct IndexedAttr{
+        attrInfo Info;
+        int offset;
+    };
 
     //CREATE RECORD OBJECT
     Record newTuple;
@@ -41,20 +33,46 @@ Status Updates::Insert(const string& relation,      // Name of the relation
     AttrDesc* allAttr = new AttrDesc;
     attrCat->getRelInfo(relation, schemaAttrCnt, allAttr);
 
-
-
-
+    //USE MEMCPY TO COPY DATA
+    int offset = 0, attrSize = 0;
+    vector<IndexedAttr> indexList;
+    for(int aryCount = 0; aryCount < schemaAttrCnt; aryCount++, allAttr++)
+    {
+        for(int i = 0; i < attrCnt; i++)
+        {
+            if(allAttr->attrName == attrList[i].attrName)
+            {
+                memcpy ( newTuple.data + offset, attrList[i].attrValue, attrList[i].attrLen );
+                if(allAttr->indexed) //IF INDEXED
+                {
+                    IndexedAttr insertIndex;
+                    insertIndex.Info = attrList[i];
+                    insertIndex.offset = offset;
+                    indexList.pushback(insertIndex);
+                }
+                offset += attrList[i].attrLen;
+                attrSize += attrList[i].attrLen;
+            }
+            if(attrList[i].attrValue == NULL) //NO VALUE SPECIFIED FOR ATTR
+            {
+                return ATTRNOTFOUND;
+            }
+        }
+    }
+    newTuple.length = attrSize;
 
     //CREATE HEAPFILE AND INSERT DATA
     Status returnStatus = OK;
     RID tupleID;
-    //MAYBE DO MEMCPY FROM THE LIST, AND GET THE LENGTH
     HeapFile insertedTuple(relation,returnStatus);
     returnStatus = insertedTuple.insertRecord(newTuple, tupleID);
 
-    //UPDATE INDEX
-    //NEED DATA AND RID TO INSERT ENTRY, CREATE RID STRUCT
-    //for RID, need page and slot number
+    //UPDATE INDEX (FOR ALL ATTR)
+    for(vector<IndexedAttr>::iterator it = indexList.begin(); it != indexList.end(); ++it)
+    {
+        Index updateIndex(relation, it->info.offset, it->info.attrLen, it->info.attrType, 0, returnStatus); 
+        updateIndex.insertEntry(it->info.attrValue, RID tupleID);
+    }
 
     return OK;
 }
