@@ -1,7 +1,7 @@
 #include "catalog.h"
 #include "query.h"
 #include "index.h"
-
+#include <vector>
 /*
  * Inserts a record into the specified relation
  *
@@ -71,7 +71,7 @@ Status Updates::Insert(const string& relation,      // Name of the relation
     for(vector<IndexedAttr>::iterator it = indexList.begin(); it != indexList.end(); ++it)
     {
         Index updateIndex(relation, it->info.offset, it->info.attrLen, it->info.attrType, 0, returnStatus); 
-        updateIndex.insertEntry(it->info.attrValue, RID tupleID);
+        updateIndex.insertEntry(it->info.attrValue, tupleID);
     }
 
     return OK;
