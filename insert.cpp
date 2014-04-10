@@ -17,14 +17,14 @@ Status Updates::Insert(const string& relation,      // Name of the relation
     /* Your solution goes here */
 
     //CHECK IF THE LIST OF ATTR IS VALID
-    for(int i = 0; i < attrList.size(); i++)
+    for(int i = 0; i < attrCnt; i++)
     {
-    	if(strcmp(attrList[i].relName, relation) != 0) //MAKE SURE SUCH ATTRIBUTE EXISTS IN RELATION
+    	if(std::strcmp(attrList[i].relName, relation) != 0) //MAKE SURE SUCH ATTRIBUTE EXISTS IN RELATION
     	{
     		return ATTRTYPEMISMATCH;
     	}
 
-    	if(attrVar[i].attrValue == NULL) //NO VALUE SPECIFIED FOR ATTR
+    	if(attrList[i].attrValue == NULL) //NO VALUE SPECIFIED FOR ATTR
     	{
     		return ATTRNOTFOUND;
     	}
@@ -38,8 +38,8 @@ Status Updates::Insert(const string& relation,      // Name of the relation
     relCat->getInfo(relation, schema);
     if(attrCnt != schema.attrCnt) return ATTRTYPEMISMATCH; //NUMBER OF ATTRIBUTE MISMATCH
     int schemaAttrCnt = 0;
-    AttrDesc[] allAttr;
-    attrCat->getRelInfogetRelInfo(relation, schemaAttrCnt, allAttr);
+    AttrDesc* allAttr = new AttrDesc;
+    attrCat->getRelInfo(relation, schemaAttrCnt, allAttr);
 
 
 
@@ -47,10 +47,10 @@ Status Updates::Insert(const string& relation,      // Name of the relation
 
     //CREATE HEAPFILE AND INSERT DATA
     Status returnStatus = OK;
-    Record insertTarget;
-    insertTarget.data = ; //MAYBE DO MEMCPY FROM THE LIST, AND GET THE LENGTH
-    Heapfile insertedTuple(relation,returnStatus);
-    returnStatus = insertedTuple.insertRecord();
+    RID tupleID;
+    //MAYBE DO MEMCPY FROM THE LIST, AND GET THE LENGTH
+    HeapFile insertedTuple(relation,returnStatus);
+    returnStatus = insertedTuple.insertRecord(newTuple, tupleID);
 
     //UPDATE INDEX
     //NEED DATA AND RID TO INSERT ENTRY, CREATE RID STRUCT
