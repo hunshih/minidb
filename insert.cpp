@@ -2,6 +2,8 @@
 #include "query.h"
 #include "index.h"
 #include <string.h>
+#include <assert.h>
+#include "utility.h"
 /*
  * Inserts a record into the specified relation
  *
@@ -29,22 +31,45 @@ Status Updates::Insert(const string& relation,      // Name of the relation
     int schemaAttrCnt = 0;
     AttrDesc* allAttr = new AttrDesc;
     attrCat->getRelInfo(relation, schemaAttrCnt, allAttr);
+    
+    //ALLOCATE SPACE FOR DATA
+    AttrDesc* getSize = allAttr;
+    int realDataSize = 0;
+    for(int i = 0; i < schemaAttrCnt; i++, getSize++)
+    {
+        realDataSize += getSize->attrLen;
+    }
+    
+    newTuple.data = new char[realDataSize];
 
     //USE MEMCPY TO COPY DATA
-    int offset = 0, attrSize = 0;
+    int offset = 0;
     for(int aryCount = 0; aryCount < schemaAttrCnt; aryCount++, allAttr++)
     {
         for(int i = 0; i < attrCnt; i++)
         {
-            if(allAttr->attrName == attrList[i].attrName)
+            if(strcmp(allAttr->attrName,attrList[i].attrName) == 0)
             {
-                memcpy ( ((char*)newTuple.data) + offset, attrList[i].attrValue, attrList[i].attrLen );
+                cerr<<"Attr Name: "<<allAttr->attrName<<", ";
+                if(attrList[i].attrType == INTEGER)
+                {
+                    cerr<<"Value: "<<*((int*)attrList[i].attrValue);
+                }
+                else if(attrList[i].attrType == DOUBLE)
+                {
+                    cerr<<"Value: "<<*((double*)attrList[i].attrValue);
+                }
+                if(attrList[i].attrType == STRING)
+                {
+                    cerr<<"Value: "<<(char*)attrList[i].attrValue;
+                }
+                cerr<<", offset: "<<offset<<", attr length:  "<<allAttr->attrLen<<endl;
+                memcpy ( ((char*)newTuple.data) + offset, attrList[i].attrValue, allAttr->attrLen);
                 if(allAttr->indexed) //IF INDEXED
                 {
                     indexMap.insert(pair<int,attrInfo>(offset ,attrList[i]));
                 }
-                attrSize = attrList[i].attrLen;
-                offset += attrSize;
+                offset += allAttr->attrLen;
             }
             if(attrList[i].attrValue == NULL) //NO VALUE SPECIFIED FOR ATTR
             {
@@ -53,12 +78,20 @@ Status Updates::Insert(const string& relation,      // Name of the relation
         }
     }
     newTuple.length = offset;
+    
 
     //CREATE HEAPFILE AND INSERT DATA
-    Status returnStatus = OK;
+    Status returnStatus;
     RID tupleID;
     HeapFile insertedTuple(relation,returnStatus);
+    assert(returnStatus == OK);
+    
     returnStatus = insertedTuple.insertRecord(newTuple, tupleID);
+    assert(returnStatus == OK);
+    Utilities u;
+    u.Print(relation);
+    delete[] newTuple.data;
+
 
     //UPDATE INDEX (FOR ALL ATTR)
     for(map<int,attrInfo>::iterator it = indexMap.begin() ; it != indexMap.end(); ++it)
@@ -66,6 +99,6 @@ Status Updates::Insert(const string& relation,      // Name of the relation
         Index updateIndex(relation, it->first, it->second.attrLen, (Datatype)it->second.attrType, 0, returnStatus); 
         updateIndex.insertEntry(it->second.attrValue, tupleID);
     }
-
+    
     return OK;
 }
