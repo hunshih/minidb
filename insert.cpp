@@ -50,7 +50,7 @@ Status Updates::Insert(const string& relation,      // Name of the relation
         {
             if(strcmp(allAttr->attrName,attrList[i].attrName) == 0)
             {
-                cerr<<"Attr Name: "<<allAttr->attrName<<", ";
+                /*cerr<<"Attr Name: "<<allAttr->attrName<<", ";
                 if(attrList[i].attrType == INTEGER)
                 {
                     cerr<<"Value: "<<*((int*)attrList[i].attrValue);
@@ -64,10 +64,13 @@ Status Updates::Insert(const string& relation,      // Name of the relation
                     cerr<<"Value: "<<(char*)attrList[i].attrValue;
                 }
                 cerr<<", offset: "<<offset<<", attr length:  "<<allAttr->attrLen<<endl;
+                */
                 memcpy ( ((char*)newTuple.data) + offset, attrList[i].attrValue, allAttr->attrLen);
                 if(allAttr->indexed) //IF INDEXED
                 {
-                    indexMap.insert(pair<int,attrInfo>(offset ,attrList[i]));
+                    attrInfo correctLen = attrList[i];
+                    correctLen.attrLen = allAttr->attrLen;
+                    indexMap.insert(pair<int,attrInfo>(offset ,correctLen));
                 }
                 offset += allAttr->attrLen;
             }
@@ -96,7 +99,15 @@ Status Updates::Insert(const string& relation,      // Name of the relation
     //UPDATE INDEX (FOR ALL ATTR)
     for(map<int,attrInfo>::iterator it = indexMap.begin() ; it != indexMap.end(); ++it)
     {
+        /*
+        cerr<<"Attr to be inserted: "<<it->second.attrName<<endl;
+        cerr<<"Attr offset:         "<<it->first<<endl;
+        cerr<<"Attr length:         "<<it->second.attrLen<<endl;
+        */
         Index updateIndex(relation, it->first, it->second.attrLen, (Datatype)it->second.attrType, 0, returnStatus); 
+        //Error ER;
+        //ER.print(returnStatus);
+        assert(returnStatus == OK);
         updateIndex.insertEntry(it->second.attrValue, tupleID);
     }
     
