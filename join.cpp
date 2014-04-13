@@ -24,6 +24,45 @@ Status Operators::Join(const string& result,           // Name of the output rel
     	               const attrInfo* attr2)          // Right attr in the join predicate
 {
     /* Your solution goes here */
+    Status prep_status;
+    int rec_len = 0;
+    AttrDesc output_attrs[projCnt];
+    for (int i = 0; i < projCnt; i++) {
+        prep_status = attrCat->getInfo(projNames[i].relName, projNames[i].attrName, output_attrs[i]);
+        if (prep_status != OK) {
+            return prep_status;
+        }
+        rec_len += output_attrs[i].attrLen;
+    }
+    AttrDesc attrdesc1, attrdesc2;
+    prep_status = attrCat->getInfo(attr1->relName, attr1->attrName, attrdesc1);
+    if (prep_status != OK) {
+        return prep_status;
+    }
+    prep_status = attrCat->getInfo(attr2->relName, attr2->attrName, attrdesc2);
+    if (prep_status != OK) {
+        return prep_status;
+    }
+
+    Status status;
+    if (op != EQ) { // non-equi join
+        status = SNL(result, projCnt, output_attrs, attrdesc1, op, attrdesc2, rec_len);
+    }
+    else {
+        if (attrdesc1.indexed) {
+            status = INL(result, projCnt, output_attrs, attrdesc2, op, attrdesc1, rec_len);
+        }
+        else if (attrdesc2.indexed) {
+            status = INL(result, projCnt, output_attrs, attrdesc1, op, attrdesc2, rec_len);
+        }
+        else {
+            status = SMJ(result, projCnt, output_attrs, attrdesc1, op, attrdesc2, rec_len);
+        }
+        
+    }
+    if (status != OK) {
+        return status;
+    }
 
 	return OK;
 }
@@ -61,4 +100,28 @@ int Operators::matchRec(const Record& outerRec,     // Left record
     }
 
     return 0;
+
+}
+
+Status Operators::join_project(const int proj_count, const AttrDesc attr_descs[], const int rec_len,
+                               const string &rel1_name, const string &rel2_name,
+                               const Record &rec1_in, const Record &rec2_in, Record *rec_out)
+{
+    char *data = new char[rec_len];
+    int offset = 0;
+    for (int i = 0; i < proj_count; i++) {
+        int attr_len = attr_descs[i].attrLen;
+        if (!rel1_name.compare(attr_descs[i].relName)) { // rel1 attr
+            memcpy(data+offset, (char *)rec1_in.data+attr_descs[i].attrOffset, attr_len);
+        }
+        else if (!rel2_name.compare(attr_descs[i].relName)) { // rel2 attr
+            memcpy(data+offset, (char *)rec2_in.data+attr_descs[i].attrOffset, attr_len);
+        }
+        
+        offset += attr_len;
+    }
+    rec_out->data = data;
+    rec_out->length = rec_len;
+    
+    return OK;
 }

@@ -99,6 +99,16 @@ private:
                      const Operator op,              // The join operation
                      const AttrDesc & attrDesc2,     // The left attribute in the join predicate
                      const int reclen);              // The lenght of a tuple in the result relation
+
+    
+    // create a record by projecting a given record
+    // implementation in join.cpp
+    static Status join_project(const int proj_count, const AttrDesc attr_descs[], const int rec_len,
+                               const string &rel1_name, const string &rel2_name,
+                               const Record &rec1_in, const Record &rec2_in, Record *rec_out);
+    
+    // calculate a tuple's size for a relation
+    static Status get_rel_tuple_size(const string &relname, int *result);
 };
 
 
