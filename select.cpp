@@ -41,7 +41,7 @@ Status Operators::Select(const string & result,      // name of the output relat
     }
 
     //IF INDEX EXISTS ON THIS ATTR
-    if(schema.indexed && (op == EQ || op == NE))
+    if(schema.indexed && op == EQ)
     {   
         returnStatus = IndexSelect(result, projCnt, projList, &schema, op, attrValue, resultLen);
         if(returnStatus != OK) return returnStatus;
