@@ -23,7 +23,8 @@ Status Operators::ScanSelect(const string& result,       // Name of the output r
     //CREATE A RESULT HEAPFILE
     HeapFile resultFile(result, returnStatus);
     if(returnStatus != OK) return returnStatus;
-    HeapFileScan scanFile(attrDesc->relName, attrDesc->attrOffset, attrDesc->attrLen, (Datatype)attrDesc->attrType, (char*)attrValue, op, returnStatus);
+ 
+    HeapFileScan scanFile(projNames[0].relName, attrDesc->attrOffset, attrDesc->attrLen, (Datatype)attrDesc->attrType, (char*)attrValue, op, returnStatus);
     if(returnStatus != OK) return returnStatus;
 
     RID resultID;
@@ -34,14 +35,14 @@ Status Operators::ScanSelect(const string& result,       // Name of the output r
     finalTuple.data = new char[reclen];
     finalTuple.length = reclen;
 
-    while(returnStatus == OK)
+    Status eof = OK;
+    Error er;
+    while(eof == OK)
     {
-    
-        returnStatus = scanFile.scanNext(resultID);
-        if(returnStatus != OK) break;
 
-        returnStatus = scanFile.getRecord(resultID, resultRecord);
-        if(returnStatus != OK) break;
+        eof = scanFile.scanNext(resultID,  resultRecord);
+        er.print(eof);
+        if(eof != OK ) break;
 
         //COPY THE DESIRE ATTRS FROM RECORD
         for(int i = 0, offset = 0; i < projCnt; i++)
@@ -50,6 +51,7 @@ Status Operators::ScanSelect(const string& result,       // Name of the output r
             offset += projNames[i].attrLen;
         }
         returnStatus = resultFile.insertRecord(finalTuple, resultID);
+        if(returnStatus != OK) return returnStatus;
         
     }
     delete [] finalTuple.data;

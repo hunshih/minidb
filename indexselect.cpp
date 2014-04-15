@@ -35,14 +35,15 @@ Status Operators::IndexSelect(const string& result,       // Name of the output 
     returnStatus = indexFile.startScan(attrValue);
     if(returnStatus != OK) return returnStatus;
 
-    while(returnStatus == OK)
+    Status eof = OK;
+    while(eof == OK)
     {
     
-        returnStatus = indexFile.scanNext(resultID);
-        if(returnStatus != OK) break;
+        eof = indexFile.scanNext(resultID);
+        if(eof != OK ) break;
 
         returnStatus = scanFile.getRandomRecord(resultID, resultRecord);
-        if(returnStatus != OK) break;
+        if(returnStatus != OK) return returnStatus;
 
         //COPY THE DESIRE ATTRS FROM RECORD
         for(int i = 0, offset = 0; i < projCnt; i++)
