@@ -36,12 +36,10 @@ Status Operators::ScanSelect(const string& result,       // Name of the output r
     finalTuple.length = reclen;
 
     Status eof = OK;
-    Error er;
     while(eof == OK)
     {
 
         eof = scanFile.scanNext(resultID,  resultRecord);
-        er.print(eof);
         if(eof != OK ) break;
 
         //COPY THE DESIRE ATTRS FROM RECORD
