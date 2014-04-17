@@ -11,6 +11,7 @@ using namespace std;
 void Page::init(int pageNo)
 {
     /* Solution Here */
+    memset(data, 0, PAGESIZE-DPFIXED);
     slotCnt = 0;
     freePtr = 0;
     freeSpace = PAGESIZE - DPFIXED;
