@@ -14,7 +14,7 @@ void Page::init(int pageNo)
     memset(data, 0, PAGESIZE-DPFIXED);
     slotCnt = 0;
     freePtr = 0;
-    freeSpace = PAGESIZE - DPFIXED;
+    freeSpace = PAGESIZE - DPFIXED + sizeof(slot_t);
     curPage = pageNo;
     prevPage = nextPage = pageNo;
 }
