@@ -78,7 +78,7 @@ const Status Page::insertRecord(const Record & rec, RID& rid)
             slot[i].length = rec.length;
             memcpy((char*)data + freePtr, rec.data, rec.length);
             freePtr += rec.length;
-            rid.slotNo = i;
+            rid.slotNo = -i;
             slotCnt -= 1;
             freeSpace -= rec.length;
             return OK;
@@ -88,10 +88,10 @@ const Status Page::insertRecord(const Record & rec, RID& rid)
     if(rec.length + sizeof(slot_t) > freeSpace) return NOSPACE;
     slotCnt -= 1;
     slot[slotCnt].offset = freePtr;
-    slot[slotCnt].offset = rec.length;
+    slot[slotCnt].length = rec.length;
     memcpy((char*)data + freePtr, rec.data, rec.length);
     freePtr += rec.length;
-    rid.slotNo = slotCnt;
+    rid.slotNo = -slotCnt;
     freeSpace -= (rec.length + sizeof(slot_t));
     return OK;
 
@@ -107,20 +107,21 @@ const Status Page::deleteRecord(const RID & rid)
 {
     /* Solution Here */
     //first check if the rid being passed is valid
-    if(rid.pageNo != curPage || slot[rid.slotNo].length == -1) return INVALIDSLOTNO;
+    if(rid.pageNo != curPage || slot[-rid.slotNo].length == -1) return INVALIDSLOTNO;
     //if deleteing the last record
-    if(slotCnt == 0)
+    if(slotCnt == -1)
     {
         slot[0].length = -1;
+        slotCnt = 0;
         return NORECORDS;
     }
     //else do memory shift with bcopy
     short offsetEnd = slot[rid.slotNo].offset + slot[rid.slotNo].length;
     bcopy((char*)data + offsetEnd, (char*)data + slot[rid.slotNo].offset, freePtr - offsetEnd);
     freeSpace += slot[rid.slotNo].length;
-    if(slotCnt == rid.slotNo) freeSpace += sizeof(slot_t);
+    // if(slotCnt == -rid.slotNo) freeSpace += sizeof(slot_t);
     slotCnt += 1;
-    slot[rid.slotNo].length = -1;
+    slot[-rid.slotNo].length = -1;
     return OK;
 
 }
