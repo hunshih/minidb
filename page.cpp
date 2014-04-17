@@ -68,6 +68,7 @@ const short Page::getFreeSpace() const
 const Status Page::insertRecord(const Record & rec, RID& rid)
 {
     /* Solution Here */
+    dumpPage();
     if(rec.length > freeSpace) return NOSPACE;
     rid.pageNo = curPage;
     for(int i = 0; i > slotCnt; i--)
@@ -116,9 +117,9 @@ const Status Page::deleteRecord(const RID & rid)
         return NORECORDS;
     }
     //else do memory shift with bcopy
-    short offsetEnd = slot[rid.slotNo].offset + slot[rid.slotNo].length;
+    short offsetEnd = slot[-rid.slotNo].offset + slot[rid.slotNo].length;
     bcopy((char*)data + offsetEnd, (char*)data + slot[rid.slotNo].offset, freePtr - offsetEnd);
-    freeSpace += slot[rid.slotNo].length;
+    freeSpace += slot[-rid.slotNo].length;
     // if(slotCnt == -rid.slotNo) freeSpace += sizeof(slot_t);
     slotCnt += 1;
     slot[-rid.slotNo].length = -1;
