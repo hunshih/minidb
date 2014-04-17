@@ -87,13 +87,13 @@ const Status Page::insertRecord(const Record & rec, RID& rid)
     }
     //if it reaches here, no empty slots found
     if(rec.length + sizeof(slot_t) > freeSpace) return NOSPACE;
-    slotCnt -= 1;
     slot[slotCnt].offset = freePtr;
     slot[slotCnt].length = rec.length;
     memcpy((char*)data + freePtr, rec.data, rec.length);
     freePtr += rec.length;
     rid.slotNo = -slotCnt;
     freeSpace -= (rec.length + sizeof(slot_t));
+    slotCnt -= 1;
     return OK;
 
 }
