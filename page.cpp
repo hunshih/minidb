@@ -27,9 +27,14 @@ void Page::dumpPage() const
        << "\nfreePtr = " << freePtr << ",  freeSpace = " << freeSpace 
        << ", slotCnt = " << slotCnt << endl;
     
-    for (i=0;i>slotCnt;i--)
-      cout << "slot[" << i << "].offset = " << slot[i].offset 
-	   << ", slot[" << i << "].length = " << slot[i].length << endl;
+    int num_slot_scanned = 0;
+    for (i=0;num_slot_scanned>slotCnt;i--) {
+        if (slot[i].length >= 0) {
+            cout << "slot[" << i << "].offset = " << slot[i].offset
+            << ", slot[" << i << "].length = " << slot[i].length << endl;
+            num_slot_scanned --;
+        }
+    }
 }
 
 const int Page::getPrevPage() const
@@ -68,10 +73,10 @@ const short Page::getFreeSpace() const
 const Status Page::insertRecord(const Record & rec, RID& rid)
 {
     /* Solution Here */
-    dumpPage();
     if(rec.length > freeSpace) return NOSPACE;
     rid.pageNo = curPage;
-    for(int i = 0; i > slotCnt; i--)
+    int slot_scanned = 0, i;
+    for(i = 0; slot_scanned > slotCnt; i--) // loop until having scanned all the records in use
     {
         if(slot[i].length == -1)
         {
@@ -84,14 +89,16 @@ const Status Page::insertRecord(const Record & rec, RID& rid)
             freeSpace -= rec.length;
             return OK;
         }
+        else // scanned an slot in use, update i
+            slot_scanned--;
     }
     //if it reaches here, no empty slots found
     if(rec.length + sizeof(slot_t) > freeSpace) return NOSPACE;
-    slot[slotCnt].offset = freePtr;
-    slot[slotCnt].length = rec.length;
+    slot[i].offset = freePtr;
+    slot[i].length = rec.length;
     memcpy((char*)data + freePtr, rec.data, rec.length);
     freePtr += rec.length;
-    rid.slotNo = -slotCnt;
+    rid.slotNo = -i;
     freeSpace -= (rec.length + sizeof(slot_t));
     slotCnt -= 1;
     return OK;
@@ -112,17 +119,28 @@ const Status Page::deleteRecord(const RID & rid)
     //if deleteing the last record
     if(slotCnt == -1)
     {
-        slot[0].length = -1;
+        // slot[0].length = -1;
         slotCnt = 0;
         return NORECORDS;
     }
-    //else do memory shift with bcopy
+    // update offset
+    for (int num_slot_scanned = 0, i = 0; num_slot_scanned > slotCnt; i--) {
+        if (slot[i].length >= 0 && slot[i].offset > slot[-rid.slotNo].offset) {
+            slot[i].offset -= slot[-rid.slotNo].length;
+        }
+        if (slot[i].length >= 0) {
+            num_slot_scanned--;
+        }
+    }
+    //do memory shift with bcopy
     short offsetEnd = slot[-rid.slotNo].offset + slot[-rid.slotNo].length;
     bcopy((char*)data + offsetEnd, (char*)data + slot[-rid.slotNo].offset, freePtr - offsetEnd);
     freeSpace += slot[-rid.slotNo].length;
+    freePtr -= slot[-rid.slotNo].length;
     // if(slotCnt == -rid.slotNo) freeSpace += sizeof(slot_t);
     slotCnt += 1;
     slot[-rid.slotNo].length = -1;
+    dumpPage();
     return OK;
 
 }
