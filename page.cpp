@@ -11,6 +11,11 @@ using namespace std;
 void Page::init(int pageNo)
 {
     /* Solution Here */
+    slotCnt = 0;
+    freePtr = 0;
+    freeSpace = PAGESIZE - DPFIXED;
+    curPage = pageNo;
+    prevPage = nextPage = pageNo;
 }
 
 // dump page utlity
@@ -49,6 +54,7 @@ const int Page::getNextPage() const
 const short Page::getFreeSpace() const
 {
     /* Solution Here */
+    return freeSpace;
 }
     
 // Add a new record to the page. Returns OK if everything went OK
@@ -83,6 +89,7 @@ const Status Page::insertRecord(const Record & rec, RID& rid)
     rid.slotNo = 0 - slotCnt;
     slotCnt += 1;
     return OK;
+
 }
 
 
@@ -109,6 +116,7 @@ const Status Page::deleteRecord(const RID & rid)
     slotCnt -= 1;
     slot[rid.slotNo].offset = -1;
     return OK;
+
 }
 
 // returns RID of first record on page
@@ -116,6 +124,18 @@ const Status Page::deleteRecord(const RID & rid)
 const Status Page::firstRecord(RID& firstRid) const
 {
     /* Solution Here */
+    if (!slotCnt) {
+        return NORECORDS;
+    }
+    slot_t *slot_ptr = (slot_t *)slot;
+    int slot_number = 0;
+    while (slot_ptr->length < 0) {
+        slot_ptr --;
+        slot_number ++;
+    }
+    firstRid.pageNo = curPage;
+    firstRid.slotNo = slot_number;
+    return OK;
 }
 
 // returns RID of next record on the page
@@ -123,6 +143,26 @@ const Status Page::firstRecord(RID& firstRid) const
 const Status Page::nextRecord (const RID &curRid, RID& nextRid) const
 {
     /* Solution Here */
+    bool get_next= false;
+    slot_t *slot_ptr = (slot_t *)slot;
+    int slot_number = 0;
+    short num_scanned_slots = 0;
+    while (num_scanned_slots < -slotCnt) {
+        if (get_next && slot_ptr->length >= 0) {
+            nextRid.pageNo = curPage;
+            nextRid.slotNo = slot_number;
+            return OK;
+        }
+        if (slot_number == curRid.slotNo) {
+            get_next = true;
+        }
+        if (slot_ptr->length >= 0) {
+            num_scanned_slots++;
+        }
+        slot_ptr --;
+        slot_number++;
+    }
+    return ENDOFPAGE;
 }
 
 // returns length and pointer to record with RID rid
@@ -130,4 +170,16 @@ const Status Page::nextRecord (const RID &curRid, RID& nextRid) const
 const Status Page::getRecord(const RID & rid, Record & rec)
 {
     /* Solution Here */
+    slot_t *slot_ptr = (slot_t *)slot;
+    if (rid.slotNo < 0 || rid.slotNo > (PAGESIZE - DPFIXED)/sizeof(slot_t)) {
+        return INVALIDSLOTNO;
+    }
+    slot_ptr -= rid.slotNo;
+    if (slot_ptr->length < 0) {
+        return INVALIDSLOTNO;
+    }
+    
+    rec.length = slot_ptr->length;
+    rec.data = data+slot_ptr->offset;
+    return OK;
 }
